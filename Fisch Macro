@@ -2,9 +2,9 @@
 ; --- FISCH MACRO ---
 ;---------------------------------------------------
 ; --- TUTORIAL ---
-; 1. MAKE SURE YOU HAVE ANY COLOR HAIR OTHER THEN WHITE.
-; 2. CLOSE CHAT AND LEADERBOARD
-; 3. PRESS P TO START.
+; 1. MAKE SURE YOU HAVE ANY COLOR HAIR OTHER THEN WHITE!!
+; 2. CLOSE CHAT AND LEADERBOARD!!
+; 3. PRESS P TO START!!
 ;---------------------------------------------------
 MsgBox, Credits to AsphaltCake.
 #SingleInstance Force
