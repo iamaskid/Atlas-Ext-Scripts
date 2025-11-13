@@ -1,0 +1,256 @@
+; @ahk: v1
+EnvGet, _atlas_exec, ATLAS_EXECUTOR
+if (_atlas_exec != 1) {
+ExitApp
+}
+EnvGet, _atlas_app, ATLAS_APPID
+if (_atlas_app != "AtlasV3") {
+ExitApp
+}
+EnvGet, _atlas_api, ATLAS_API
+if (_atlas_api != 1) {
+ExitApp
+}
+#SingleInstance Force
+
+global isRunning := false
+global clickCount := 0
+global startStopHotkey := "F6"
+global guiHwnd := 0
+
+Gui, Font, s8, Segoe UI
+Gui, Color, 0xF0F0F0
+Gui, +AlwaysOnTop +HwndguiHwnd
+
+Gui, Add, GroupBox, x10 y5 w425 h65, Click interval
+
+Gui, Add, Edit, x20 y25 w35 Number -VScroll vHours, 0
+Gui, Add, Text, x58 y27, hours
+
+Gui, Add, Edit, x105 y25 w35 Number -VScroll vMins, 0
+Gui, Add, Text, x143 y27, mins
+
+Gui, Add, Edit, x185 y25 w35 Number -VScroll vSecs, 0
+Gui, Add, Text, x223 y27, secs
+
+Gui, Add, Edit, x270 y25 w45 Number -VScroll vMilliseconds, 100
+Gui, Add, Text, x318 y27, milliseconds
+
+Gui, Add, GroupBox, x10 y75 w210 h70, Click options
+
+Gui, Add, Text, x20 y93, Mouse button:
+Gui, Add, DropDownList, x95 y90 w105 vMouseButton Choose1, Left|Right|Middle
+
+Gui, Add, Text, x20 y118, Click type:
+Gui, Add, DropDownList, x95 y115 w105 vClickType Choose1, Single|Double
+
+Gui, Add, GroupBox, x225 y75 w210 h70, Click repeat
+
+Gui, Add, Radio, x235 y93 vRepeatMode, Repeat
+Gui, Add, Edit, x290 y90 w40 Number -VScroll vRepeatTimes, 1
+Gui, Add, Text, x333 y93, times
+
+Gui, Add, Radio, x235 y118 Checked, Repeat until stopped
+
+Gui, Add, GroupBox, x10 y150 w425 h65, Cursor position
+
+Gui, Add, Radio, x20 y170 vCursorMode Checked, Current location
+
+Gui, Add, Radio, x175 y170, 
+Gui, Add, Button, x200 y167 w120 h20 gPickLocation, Pick location
+Gui, Add, Text, x325 y170, X
+Gui, Add, Edit, x337 y167 w35 Number -VScroll vPickX, 0
+Gui, Add, Text, x377 y170, Y
+Gui, Add, Edit, x389 y167 w35 Number -VScroll vPickY, 0
+
+Gui, Add, Button, x25 y225 w190 h30 vStartButton gStartClicking, Start (%startStopHotkey%)
+Gui, Add, Button, x240 y225 w190 h30 vStopButton gStopClicking Disabled, Stop (%startStopHotkey%)
+
+Gui, Add, Button, x25 y265 w190 h30 gShowHotkeySettings, Hotkey setting
+Gui, Add, Button, x240 y265 w190 h30 gShowRecordPlayback Disabled, Record && Playback
+
+Gui, Show, w445 h310, OP Autohotkey Clicker (dezzo)
+
+Hotkey, %startStopHotkey%, ToggleClicking
+return
+
+PickLocation:
+GuiControl,, CursorMode, 0
+Gui, +OwnDialogs
+Gui, Submit, NoHide
+SetTimer, UpdateMousePos, 10
+Tooltip, Click or press Esc to pick`nX:%A_Space% Y:%A_Space%
+KeyWait, LButton, D
+SetTimer, UpdateMousePos, Off
+MouseGetPos, px, py
+GuiControl,, PickX, %px%
+GuiControl,, PickY, %py%
+Tooltip
+return
+
+UpdateMousePos:
+MouseGetPos, mx, my
+Tooltip, Click or press Esc to pick`nX:%mx% Y:%my%
+if GetKeyState("Esc", "P") {
+    SetTimer, UpdateMousePos, Off
+    Tooltip
+}
+return
+
+ToggleClicking:
+if (!isRunning)
+    Gosub, StartClicking
+else
+    Gosub, StopClicking
+return
+
+StartClicking:
+Gui, Submit, NoHide
+
+interval := (Hours * 3600000) + (Mins * 60000) + (Secs * 1000) + Milliseconds
+
+if (interval < 0) {
+    MsgBox, 16, Error, Click interval cannot be negative!
+    return
+}
+
+if (interval = 0)
+    interval := 1
+
+isRunning := true
+clickCount := 0
+WinSetTitle, ahk_id %guiHwnd%, , Started - OP Autohotkey Clicker (dezzo)
+
+GuiControl, Disable, StartButton
+GuiControl, Enable, StopButton
+
+if (RepeatMode = 1)
+    maxClicks := RepeatTimes
+else
+    maxClicks := -1
+
+SetTimer, PerformClick, %interval%
+return
+
+PerformClick:
+if (!isRunning) {
+    SetTimer, PerformClick, Off
+    return
+}
+
+if (maxClicks > 0 && clickCount >= maxClicks) {
+    Gosub, StopClicking
+    return
+}
+
+if (MouseButton = "Left")
+    button := "Left"
+else if (MouseButton = "Right")
+    button := "Right"
+else
+    button := "Middle"
+
+if (CursorMode = 1) {
+    if (ClickType = "Single")
+        Click, %button%
+    else
+        Click, %button% 2
+} else {
+    if (ClickType = "Single")
+        Click, %PickX%, %PickY%, 0, %button%
+    else
+        Click, %PickX%, %PickY%, 2, %button%
+}
+
+clickCount++
+return
+
+StopClicking:
+isRunning := false
+clickCount := 0
+SetTimer, PerformClick, Off
+WinSetTitle, ahk_id %guiHwnd%, , Stopped - OP Autohotkey Clicker (dezzo)
+
+GuiControl, Enable, StartButton
+GuiControl, Disable, StopButton
+return
+
+ShowHotkeySettings:
+Gui, 2:New, +Owner1 +ToolWindow
+Gui, 2:Font, s9, Segoe UI
+Gui, 2:Color, 0xF0F0F0
+
+Gui, 2:Add, Button, x20 y20 w80 gSetNewHotkey, Start / Stop
+Gui, 2:Add, Edit, x110 y20 w120 vNewHotkey ReadOnly Center, %startStopHotkey%
+
+Gui, 2:Add, Button, x40 y60 w60 gSaveHotkey Default, Ok
+Gui, 2:Add, Button, x120 y60 w60 gCancelHotkey, Cancel
+
+Gui, 2:Show, w260 h100, Hotkey Setting
+return
+
+SetNewHotkey:
+GuiControl, 2:, NewHotkey, Press any key
+Gui, 2:+LastFound
+Input, key, L1 T5
+if (ErrorLevel = "Timeout")
+    GuiControl, 2:, NewHotkey, %startStopHotkey%
+else {
+    GuiControl, 2:, NewHotkey, %key%
+}
+return
+
+SaveHotkey:
+Gui, 2:Submit, NoHide
+if (NewHotkey != "" && NewHotkey != "Press any key") {
+    Hotkey, %startStopHotkey%, Off
+    startStopHotkey := NewHotkey
+    Hotkey, %startStopHotkey%, ToggleClicking, On
+    GuiControl, 1:, StartButton, Start (%startStopHotkey%)
+    GuiControl, 1:, StopButton, Stop (%startStopHotkey%)
+}
+Gui, 2:Destroy
+return
+
+CancelHotkey:
+Gui, 2:Destroy
+return
+
+2GuiClose:
+Gui, 2:Destroy
+return
+
+ShowRecordPlayback:
+Gui, 3:New, +Owner1 +ToolWindow
+Gui, 3:Font, s9, Segoe UI
+Gui, 3:Color, 0xF0F0F0
+
+Gui, 3:Add, Text, x20 y15 w200 Center, Options    Help
+
+Gui, 3:Add, Button, x50 y45 w40 h40 gStartRecord, ?
+Gui, 3:Add, Button, x100 y45 w40 h40 gStopRecord, ?
+Gui, 3:Add, Button, x150 y45 w40 h40 gMoreOptions, More
+
+Gui, 3:Add, Text, x20 y95 w200 Center, Click the green button to start playback
+
+Gui, 3:Show, w240 h140, Record & Playback
+return
+
+StartRecord:
+MsgBox, 64, Record, Click the red button to start recording
+return
+
+StopRecord:
+MsgBox, 64, Record, Recording started (feature in development)
+return
+
+MoreOptions:
+MsgBox, 64, More Options, More options coming soon
+return
+
+3GuiClose:
+Gui, 3:Destroy
+return
+
+GuiClose:
+ExitApp
