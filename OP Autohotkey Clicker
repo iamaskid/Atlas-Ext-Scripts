@@ -1,16 +1,3 @@
-; @ahk: v1
-EnvGet, _atlas_exec, ATLAS_EXECUTOR
-if (_atlas_exec != 1) {
-ExitApp
-}
-EnvGet, _atlas_app, ATLAS_APPID
-if (_atlas_app != "AtlasV3") {
-ExitApp
-}
-EnvGet, _atlas_api, ATLAS_API
-if (_atlas_api != 1) {
-ExitApp
-}
 #SingleInstance Force
 
 global isRunning := false
